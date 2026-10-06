@@ -1,41 +1,61 @@
+import java.time.LocalDate;
+
 public class Subscription {
 
-    // Variables to store subscription details
+    // Subscription details
     private int id;
     private String name;
     private double cost;
-    private String billingCycle;
+    private BillingCycle billingCycle;
+    private LocalDate lastUsedDate;
 
-    // Constructor to initialize subscription details
-    public Subscription(int id, String name, double cost, String billingCycle) {
+    // Constructor
+    public Subscription(int id, String name, double cost,
+                        BillingCycle billingCycle, LocalDate lastUsedDate) {
         this.id = id;
         this.name = name;
         this.cost = cost;
         this.billingCycle = billingCycle;
+        this.lastUsedDate = lastUsedDate;
     }
 
-    // Get the subscription ID
+    // Get subscription ID
     public int getId() {
         return id;
     }
 
-    // Get the subscription name
+    // Get subscription name
     public String getName() {
         return name;
     }
 
-    // Get the subscription cost
+    // Get subscription cost
     public double getCost() {
         return cost;
     }
 
-    // Get the billing cycle
-    public String getBillingCycle() {
+    // Get billing cycle
+    public BillingCycle getBillingCycle() {
         return billingCycle;
+    }
+
+    // Get last used date
+    public LocalDate getLastUsedDate() {
+        return lastUsedDate;
+    }
+
+    // Calculate the monthly cost
+    public double getMonthlyCost() {
+        if (billingCycle == BillingCycle.YEARLY) {
+            return cost / 12;
+        }
+
+        return cost;
     }
 
     // Display subscription details
     public String toString() {
-        return id + " | " + name + " | " + cost + " | " + billingCycle;
+        return id + " | " + name + " | " + cost + " | "
+                + billingCycle + " | last used: " + lastUsedDate;
     }
 }
