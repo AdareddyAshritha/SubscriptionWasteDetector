@@ -1,4 +1,5 @@
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 public class Subscription {
 
@@ -52,7 +53,14 @@ public class Subscription {
 
         return cost;
     }
-
+    //ChroUnit.DAYS.between() calculates the gap between two dates.
+    public long getDaysSinceLastUse(){
+        return ChronoUnit.DAYS.between(lastUsedDate, LocalDate.now());
+    }
+    //If more days have passed than the given limit, it is considered unused.
+    public boolean isUnused(int thresholdDays){
+        return getDaysSinceLastUse() > thresholdDays;
+    }
     // Display subscription details
     public String toString() {
         return id + " | " + name + " | " + cost + " | "

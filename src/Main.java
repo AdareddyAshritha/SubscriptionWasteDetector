@@ -4,7 +4,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // Create subscriptions for testing
+        // Create a few subscriptions to test
         Subscription s1 = new Subscription(
                 1, "Netflix", 15.49,
                 BillingCycle.MONTHLY,
@@ -17,16 +17,34 @@ public class Main {
                 LocalDate.of(2026, 5, 2)
         );
 
-        // Display subscription details
-        System.out.println("Subscription details:");
-        System.out.println(s1);
-        System.out.println(s2);
+        Subscription s3 = new Subscription(
+                3, "Spotify", 9.99,
+                BillingCycle.MONTHLY,
+                LocalDate.of(2025, 12, 1)
+        );
 
-        // Display monthly cost
-        System.out.println("Monthly cost of "
-                + s1.getName() + ": " + s1.getMonthlyCost());
+        // Store them in an array
+        Subscription[] subs = { s1, s2, s3 };
 
-        System.out.println("Monthly cost of "
-                + s2.getName() + ": " + s2.getMonthlyCost());
+        // Print details of each subscription
+        for (Subscription s : subs) {
+            System.out.println(s);
+            System.out.println("Monthly cost: " + s.getMonthlyCost());
+
+            if (s.isUnused(30)) {
+                System.out.println("Waste: unused for "
+                        + s.getDaysSinceLastUse() + " days");
+            }
+
+            System.out.println();
+        }
+
+        // Total monthly cost
+        double total = 0;
+        for (Subscription s : subs) {
+            total += s.getMonthlyCost();
+        }
+
+        System.out.println("Total monthly cost: " + total);
     }
 }
