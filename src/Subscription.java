@@ -1,6 +1,6 @@
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-
+//Stores the details of one subscription
 public class Subscription {
 
     // Subscription details
@@ -59,9 +59,10 @@ public class Subscription {
     }
     //If more days have passed than the given limit, it is considered unused.
     public boolean isUnused(int thresholdDays){
-        return getDaysSinceLastUse() > thresholdDays;
+        return getDaysSinceLastUse() >= thresholdDays;
     }
     // Display subscription details
+    @Override
     public String toString() {
         return id + " | " + name + " | " + cost + " | "
                 + billingCycle + " | last used: " + lastUsedDate;
