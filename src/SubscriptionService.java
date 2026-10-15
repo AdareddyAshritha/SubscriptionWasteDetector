@@ -58,4 +58,36 @@ public class SubscriptionService {
 
         return unused;
     }
+
+    // Updates an existing subscription.
+    public boolean updateSubscription(int id, String name,
+                                      double cost,
+                                      BillingCycle cycle,
+                                      LocalDate lastUsed) {
+        for (int i = 0; i < subscriptions.size(); i++) {
+            if (subscriptions.get(i).getId() == id) {
+                Subscription updated = new Subscription(
+                        id, name, cost, cycle, lastUsed);
+
+                subscriptions.set(i, updated);
+                FileHandler.save(subscriptions);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Deletes an existing subscription.
+    public boolean deleteSubscription(int id) {
+        boolean removed = subscriptions.removeIf(
+                s -> s.getId() == id);
+
+        if (removed) {
+            FileHandler.save(subscriptions);
+        }
+
+        return removed;
+    }
 }
