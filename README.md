@@ -1,14 +1,21 @@
 Subscription Waste Detector
 
-A Core Java project to keep track of my subscriptions and find the ones I am paying for but not using.
+A simple Core Java project that helps users track subscriptions, calculate monthly expenses, and identify unused subscriptions.
 
-Planned features
+Features
 
-- Add and view subscriptions
-- Calculate monthly cost
-- Find unused subscriptions
-- Save and load subscription data using a text file
+- Add, view, update, and delete subscriptions
+- Calculate total monthly cost
+- Identify unused subscriptions
+- Store data in MySQL
 
-Status
+Technologies Used
 
-Project setup is done. Currently working on the Subscription class.s
+- Java
+- MySQL
+- JDBC
+- IntelliJ IDEA
+
+Project Status
+
+Basic subscription management with MySQL integration is implemented. Future improvements may include a graphical user interface.

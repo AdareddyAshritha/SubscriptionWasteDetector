@@ -1,40 +1,110 @@
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-// Handles saving and loading subscription data.
+// Handles subscription data using MySQL.
 public class FileHandler {
 
-    private static final String FILE_NAME = "subscriptions.txt";
+    // Loads subscriptions from MySQL.
+    public static ArrayList<Subscription> load() {
+        ArrayList<Subscription> list = new ArrayList<>();
 
-    // Saves all subscriptions to a text file.
-    public static void save(ArrayList<Subscription> list) {
-        try (FileWriter writer = new FileWriter(FILE_NAME)) {
+        String sql = "SELECT * FROM subscriptions ORDER BY id";
 
-            for (Subscription s : list) {
-                writer.write(
-                        s.getId() + ","
-                                + s.getName().replace(",", " ") + ","
-                                + s.getCost() + ","
-                                + s.getBillingCycle() + ","
-                                + s.getLastUsedDate() + "\n"
-                );
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String name = rs.getString("name");
+                double cost = rs.getDouble("cost");
+                BillingCycle cycle = BillingCycle.valueOf(
+                        rs.getString("billing_cycle"));
+                LocalDate date = rs.getDate(
+                        "last_used_date").toLocalDate();
+
+                list.add(new Subscription(
+                        id, name, cost, cycle, date));
             }
 
-        } catch (IOException e) {
-            System.out.println("Could not save subscription data.");
+        } catch (SQLException e) {
+            System.out.println(
+                    "Could not load database data.");
+            e.printStackTrace();
+            return list;
+        }
+
+        // Import the old file if the database is empty.
+        if (list.isEmpty()) {
+            list = loadFromFile();
+
+            if (!list.isEmpty()) {
+                save(list);
+            }
+        }
+
+        return list;
+    }
+
+    // Saves the complete list to MySQL.
+    public static void save(ArrayList<Subscription> list) {
+
+        String deleteSql = "DELETE FROM subscriptions";
+
+        String insertSql =
+                "INSERT INTO subscriptions "
+                        + "(id, name, cost, billing_cycle, last_used_date) "
+                        + "VALUES (?, ?, ?, ?, ?)";
+
+        try (Connection con = DBConnection.getConnection()) {
+
+            con.setAutoCommit(false);
+
+            try (PreparedStatement delete =
+                         con.prepareStatement(deleteSql)) {
+                delete.executeUpdate();
+            }
+
+            try (PreparedStatement insert =
+                         con.prepareStatement(insertSql)) {
+
+                for (Subscription s : list) {
+                    insert.setInt(1, s.getId());
+                    insert.setString(2, s.getName());
+                    insert.setDouble(3, s.getCost());
+                    insert.setString(
+                            4, s.getBillingCycle().name());
+                    insert.setDate(
+                            5, java.sql.Date.valueOf(
+                                    s.getLastUsedDate()));
+
+                    insert.addBatch();
+                }
+
+                insert.executeBatch();
+            }
+
+            con.commit();
+
+        } catch (SQLException e) {
+            System.out.println(
+                    "Could not save database data.");
+            e.printStackTrace();
         }
     }
 
-    // Loads subscriptions from the text file.
-    public static ArrayList<Subscription> load() {
+    // Reads the old text file for the first import.
+    private static ArrayList<Subscription> loadFromFile() {
         ArrayList<Subscription> list = new ArrayList<>();
-        File file = new File(FILE_NAME);
+        File file = new File("subscriptions.txt");
 
-        // Returns an empty list if the file does not exist.
         if (!file.exists()) {
             return list;
         }
@@ -50,10 +120,7 @@ public class FileHandler {
 
                 String[] parts = line.split(",", -1);
 
-                // Each record must contain five fields.
                 if (parts.length != 5) {
-                    System.out.println(
-                            "Skipping invalid saved record.");
                     continue;
                 }
 
@@ -63,29 +130,26 @@ public class FileHandler {
                     double cost = Double.parseDouble(parts[2]);
                     BillingCycle cycle =
                             BillingCycle.valueOf(parts[3]);
-                    LocalDate lastUsed =
+                    LocalDate date =
                             LocalDate.parse(parts[4]);
 
-                    // Reject invalid saved values.
-                    if (id <= 0 || name.trim().isEmpty()
-                            || !Double.isFinite(cost) || cost < 0
-                            || lastUsed.isAfter(LocalDate.now())) {
-                        System.out.println(
-                                "Skipping invalid saved record.");
-                        continue;
-                    }
+                    if (id > 0 && !name.trim().isEmpty()
+                            && Double.isFinite(cost) && cost >= 0
+                            && !date.isAfter(LocalDate.now())) {
 
-                    list.add(new Subscription(
-                            id, name, cost, cycle, lastUsed));
+                        list.add(new Subscription(
+                                id, name, cost, cycle, date));
+                    }
 
                 } catch (IllegalArgumentException e) {
                     System.out.println(
-                            "Skipping invalid saved record.");
+                            "Skipping an invalid saved record.");
                 }
             }
 
         } catch (IOException e) {
-            System.out.println("Could not read subscription data.");
+            System.out.println(
+                    "Could not read the old text file.");
         }
 
         return list;
