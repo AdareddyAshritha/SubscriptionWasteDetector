@@ -1,16 +1,16 @@
-import java.time.LocalDate;
 import java.util.ArrayList;
 
-// Performs subscription operations.
 public class SubscriptionService {
 
     private ArrayList<Subscription> subscriptions;
-    private int nextId = 1;
+    private int nextId;
 
-    // Loads subscriptions from MySQL.
+    // Load existing subscriptions when the program starts
     public SubscriptionService() {
         subscriptions = FileHandler.load();
+        nextId = 1;
 
+        // Find the next available ID
         for (Subscription s : subscriptions) {
             if (s.getId() >= nextId) {
                 nextId = s.getId() + 1;
@@ -18,25 +18,30 @@ public class SubscriptionService {
         }
     }
 
-    // Adds a subscription.
-    public void addSubscription(String name, double cost,
-                                BillingCycle cycle,
-                                LocalDate lastUsed) {
-
-        Subscription s = new Subscription(
-                nextId, name, cost, cycle, lastUsed);
+    // Add a new subscription
+    public void addSubscription(Subscription s) {
+        // Assign a unique ID
+        s = new Subscription(
+                nextId,
+                s.getName(),
+                s.getCost(),
+                s.getBillingCycle(),
+                s.getLastUsedDate()
+        );
 
         subscriptions.add(s);
-        FileHandler.save(subscriptions);
         nextId++;
+
+        // Save subscriptions to the file
+        FileHandler.save(subscriptions);
     }
 
-    // Returns all subscriptions.
-    public ArrayList<Subscription> getAll() {
+    // Return all subscriptions
+    public ArrayList<Subscription> getAllSubscriptions() {
         return subscriptions;
     }
 
-    // Calculates total monthly cost.
+    // Calculate total monthly cost
     public double getTotalMonthlyCost() {
         double total = 0;
 
@@ -47,10 +52,8 @@ public class SubscriptionService {
         return total;
     }
 
-    // Finds unused subscriptions.
-    public ArrayList<Subscription> getUnusedSubscriptions(
-            int days) {
-
+    // Find subscriptions unused for a specified number of days
+    public ArrayList<Subscription> getUnusedSubscriptions(int days) {
         ArrayList<Subscription> unused = new ArrayList<>();
 
         for (Subscription s : subscriptions) {
@@ -62,18 +65,24 @@ public class SubscriptionService {
         return unused;
     }
 
-    // Updates a subscription.
-    public boolean updateSubscription(int id, String name,
-                                      double cost,
-                                      BillingCycle cycle,
-                                      LocalDate lastUsed) {
+    // Search subscriptions by name
+    public ArrayList<Subscription> searchSubscriptions(String keyword) {
+        ArrayList<Subscription> results = new ArrayList<>();
 
+        for (Subscription s : subscriptions) {
+            if (s.getName().toLowerCase()
+                    .contains(keyword.toLowerCase())) {
+                results.add(s);
+            }
+        }
+
+        return results;
+    }
+
+    // Update a subscription
+    public boolean updateSubscription(Subscription updated) {
         for (int i = 0; i < subscriptions.size(); i++) {
-
-            if (subscriptions.get(i).getId() == id) {
-                Subscription updated = new Subscription(
-                        id, name, cost, cycle, lastUsed);
-
+            if (subscriptions.get(i).getId() == updated.getId()) {
                 subscriptions.set(i, updated);
                 FileHandler.save(subscriptions);
                 return true;
@@ -83,16 +92,23 @@ public class SubscriptionService {
         return false;
     }
 
-    // Deletes a subscription.
+    // Delete a subscription using its ID
     public boolean deleteSubscription(int id) {
+        boolean found = false;
 
-        boolean removed = subscriptions.removeIf(
-                s -> s.getId() == id);
+        for (int i = 0; i < subscriptions.size(); i++) {
+            if (subscriptions.get(i).getId() == id) {
+                subscriptions.remove(i);
+                found = true;
+                break;
+            }
+        }
 
-        if (removed) {
+        // Save only if a subscription was deleted
+        if (found) {
             FileHandler.save(subscriptions);
         }
 
-        return removed;
+        return found;
     }
 }
