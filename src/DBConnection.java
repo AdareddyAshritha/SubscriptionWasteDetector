@@ -2,19 +2,16 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-// Connects Java to the MySQL database.
 public class DBConnection {
 
-    private static final String URL =
-            "jdbc:mysql://localhost:3306/subscription_waste";
-    private static final String USER = "root";
+    public static Connection getConnection() throws SQLException {
 
-    // Replace this with the MySQL root password you created.
-    private static final String PASSWORD ="mypassword";
+        String url = "jdbc:mysql://localhost:3306/subscription_waste";
+        String username = "root";
+        String password = "MYSQL_PASSWORD";
 
-    public static Connection getConnection()
-            throws SQLException {
-        return DriverManager.getConnection(
-                URL, USER, PASSWORD);
+        Connection con = DriverManager.getConnection(url, username, password);
+
+        return con;
     }
 }

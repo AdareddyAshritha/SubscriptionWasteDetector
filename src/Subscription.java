@@ -1,16 +1,15 @@
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-//Stores the details of one subscription
-public class Subscription {
 
-    // Subscription details
+// Stores the details of one subscription.
+public class Subscription {
     private int id;
     private String name;
     private double cost;
     private BillingCycle billingCycle;
     private LocalDate lastUsedDate;
 
-    // Constructor
+    // Initializes the subscription details.
     public Subscription(int id, String name, double cost,
                         BillingCycle billingCycle, LocalDate lastUsedDate) {
         this.id = id;
@@ -20,51 +19,77 @@ public class Subscription {
         this.lastUsedDate = lastUsedDate;
     }
 
-    // Get subscription ID
+    // Returns the subscription ID.
     public int getId() {
         return id;
     }
 
-    // Get subscription name
+    // Returns the subscription name.
     public String getName() {
         return name;
     }
 
-    // Get subscription cost
+    // Returns the subscription cost.
     public double getCost() {
         return cost;
     }
 
-    // Get billing cycle
+    // Returns the billing cycle.
     public BillingCycle getBillingCycle() {
         return billingCycle;
     }
 
-    // Get last used date
+    // Returns the last-used date.
     public LocalDate getLastUsedDate() {
         return lastUsedDate;
     }
 
-    // Calculate the monthly cost
+    // Updates the subscription name.
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    // Updates the subscription cost.
+    public void setCost(double cost) {
+        this.cost = cost;
+    }
+
+    // Updates the billing cycle.
+    public void setBillingCycle(BillingCycle billingCycle) {
+        this.billingCycle = billingCycle;
+    }
+
+    // Updates the last-used date.
+    public void setLastUsedDate(LocalDate lastUsedDate) {
+        this.lastUsedDate = lastUsedDate;
+    }
+
+    // Converts yearly cost into a monthly cost.
     public double getMonthlyCost() {
         if (billingCycle == BillingCycle.YEARLY) {
-            return cost / 12;
+            return cost / 12.0;
         }
 
         return cost;
     }
-    //ChroUnit.DAYS.between() calculates the gap between two dates.
-    public long getDaysSinceLastUse(){
+
+    // Calculates how many days have passed since last use.
+    public long getDaysSinceLastUse() {
         return ChronoUnit.DAYS.between(lastUsedDate, LocalDate.now());
     }
-    //If more days have passed than the given limit, it is considered unused.
-    public boolean isUnused(int thresholdDays){
+
+    // Checks whether the subscription has been unused for enough days.
+    public boolean isUnused(int thresholdDays) {
         return getDaysSinceLastUse() >= thresholdDays;
     }
-    // Display subscription details
+
+    // Displays subscription information in readable form.
     @Override
     public String toString() {
-        return id + " | " + name + " | " + cost + " | "
-                + billingCycle + " | last used: " + lastUsedDate;
+        return "ID: " + id
+                + " | Name: " + name
+                + " | Cost: " + String.format("%.2f", cost)
+                + " | Cycle: " + billingCycle
+                + " | Last used: " + lastUsedDate;
     }
 }

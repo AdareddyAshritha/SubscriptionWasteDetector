@@ -1,114 +1,168 @@
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
+// Performs subscription operations using the MySQL database.
 public class SubscriptionService {
 
-    private ArrayList<Subscription> subscriptions;
-    private int nextId;
+    // Adds a new subscription to the database.
+    public void addSubscription(Subscription subscription)
+            throws SQLException {
 
-    // Load existing subscriptions when the program starts
-    public SubscriptionService() {
-        subscriptions = FileHandler.load();
-        nextId = 1;
+        String sql = "INSERT INTO subscriptions "
+                + "(name, cost, billing_cycle, last_used_date) "
+                + "VALUES (?, ?, ?, ?)";
 
-        // Find the next available ID
-        for (Subscription s : subscriptions) {
-            if (s.getId() >= nextId) {
-                nextId = s.getId() + 1;
-            }
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, subscription.getName());
+            statement.setDouble(2, subscription.getCost());
+            statement.setString(3, subscription.getBillingCycle().name());
+            statement.setDate(4, Date.valueOf(subscription.getLastUsedDate()));
+
+            statement.executeUpdate();
         }
     }
 
-    // Add a new subscription
-    public void addSubscription(Subscription s) {
-        // Assign a unique ID
-        s = new Subscription(
-                nextId,
-                s.getName(),
-                s.getCost(),
-                s.getBillingCycle(),
-                s.getLastUsedDate()
-        );
+    // Retrieves all subscriptions from the database.
+    public ArrayList<Subscription> getAllSubscriptions()
+            throws SQLException {
 
-        subscriptions.add(s);
-        nextId++;
+        ArrayList<Subscription> subscriptions = new ArrayList<>();
 
-        // Save subscriptions to the file
-        FileHandler.save(subscriptions);
-    }
+        String sql = "SELECT id, name, cost, billing_cycle, last_used_date "
+                + "FROM subscriptions ORDER BY id";
 
-    // Return all subscriptions
-    public ArrayList<Subscription> getAllSubscriptions() {
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet result = statement.executeQuery()) {
+
+            while (result.next()) {
+                subscriptions.add(readSubscription(result));
+            }
+        }
+
         return subscriptions;
     }
 
-    // Calculate total monthly cost
-    public double getTotalMonthlyCost() {
-        double total = 0;
+    // Calculates the total monthly cost of all subscriptions.
+    public double getTotalMonthlyCost() throws SQLException {
+        double total = 0.0;
+        ArrayList<Subscription> subscriptions = getAllSubscriptions();
 
-        for (Subscription s : subscriptions) {
-            total += s.getMonthlyCost();
+        for (Subscription subscription : subscriptions) {
+            total += subscription.getMonthlyCost();
         }
 
         return total;
     }
 
-    // Find subscriptions unused for a specified number of days
-    public ArrayList<Subscription> getUnusedSubscriptions(int days) {
-        ArrayList<Subscription> unused = new ArrayList<>();
+    // Estimates yearly spending using the monthly total.
+    public double getYearlySpending() throws SQLException {
+        return getTotalMonthlyCost() * 12.0;
+    }
 
-        for (Subscription s : subscriptions) {
-            if (s.isUnused(days)) {
-                unused.add(s);
+    // Finds subscriptions unused for the specified number of days.
+    public ArrayList<Subscription> getUnusedSubscriptions(int days)
+            throws SQLException {
+
+        ArrayList<Subscription> unused = new ArrayList<>();
+        ArrayList<Subscription> subscriptions = getAllSubscriptions();
+
+        for (Subscription subscription : subscriptions) {
+            if (subscription.isUnused(days)) {
+                unused.add(subscription);
             }
         }
 
         return unused;
     }
 
-    // Search subscriptions by name
-    public ArrayList<Subscription> searchSubscriptions(String keyword) {
-        ArrayList<Subscription> results = new ArrayList<>();
+    // Searches for subscription names containing the given text.
+    public ArrayList<Subscription> searchSubscriptions(String searchText)
+            throws SQLException {
 
-        for (Subscription s : subscriptions) {
-            if (s.getName().toLowerCase()
-                    .contains(keyword.toLowerCase())) {
-                results.add(s);
+        ArrayList<Subscription> matches = new ArrayList<>();
+
+        String sql = "SELECT id, name, cost, billing_cycle, last_used_date "
+                + "FROM subscriptions WHERE name LIKE ? ORDER BY id";
+
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, "%" + searchText + "%");
+
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    matches.add(readSubscription(result));
+                }
             }
         }
 
-        return results;
+        return matches;
     }
 
-    // Update a subscription
-    public boolean updateSubscription(Subscription updated) {
-        for (int i = 0; i < subscriptions.size(); i++) {
-            if (subscriptions.get(i).getId() == updated.getId()) {
-                subscriptions.set(i, updated);
-                FileHandler.save(subscriptions);
-                return true;
-            }
-        }
+    // Updates an existing subscription using its ID.
+    public boolean updateSubscription(Subscription subscription)
+            throws SQLException {
 
-        return false;
+        String sql = "UPDATE subscriptions "
+                + "SET name = ?, cost = ?, billing_cycle = ?, last_used_date = ? "
+                + "WHERE id = ?";
+
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, subscription.getName());
+            statement.setDouble(2, subscription.getCost());
+            statement.setString(3, subscription.getBillingCycle().name());
+            statement.setDate(4, Date.valueOf(subscription.getLastUsedDate()));
+            statement.setInt(5, subscription.getId());
+
+            return statement.executeUpdate() > 0;
+        }
     }
 
-    // Delete a subscription using its ID
-    public boolean deleteSubscription(int id) {
-        boolean found = false;
+    // Deletes a subscription using its ID.
+    public boolean deleteSubscription(int id) throws SQLException {
+        String sql = "DELETE FROM subscriptions WHERE id = ?";
 
-        for (int i = 0; i < subscriptions.size(); i++) {
-            if (subscriptions.get(i).getId() == id) {
-                subscriptions.remove(i);
-                found = true;
-                break;
-            }
+        try (Connection connection = DBConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, id);
+
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    // Estimates monthly savings from unused subscriptions.
+    public double getPotentialMonthlySavings(int days) throws SQLException {
+        double savings = 0.0;
+        ArrayList<Subscription> unused = getUnusedSubscriptions(days);
+
+        for (Subscription subscription : unused) {
+            savings += subscription.getMonthlyCost();
         }
 
-        // Save only if a subscription was deleted
-        if (found) {
-            FileHandler.save(subscriptions);
-        }
+        return savings;
+    }
 
-        return found;
+    // Converts a database row into a Subscription object.
+    private Subscription readSubscription(ResultSet result)
+            throws SQLException {
+
+        return new Subscription(
+                result.getInt("id"),
+                result.getString("name"),
+                result.getDouble("cost"),
+                BillingCycle.valueOf(
+                        result.getString("billing_cycle").toUpperCase()),
+                result.getDate("last_used_date").toLocalDate()
+        );
     }
 }

@@ -1,365 +1,342 @@
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+// Main class that runs the Subscription Waste Detector.
 public class Main {
+    private static final Scanner scanner = new Scanner(System.in);
+    private static final SubscriptionService service =
+            new SubscriptionService();
 
     public static void main(String[] args) {
-
-        // Scanner reads input entered by the user
-        Scanner sc = new Scanner(System.in);
-
-        // Create the service object to manage subscriptions
-        SubscriptionService service = new SubscriptionService();
-
-        // Stores the menu option selected by the user
-        int choice = -1;
-
-        // Repeat the menu until the user enters 0
-        while (choice != 0) {
-
-            // Display the main menu
-            System.out.println("\n===== SUBSCRIPTION WASTE DETECTOR =====");
-            System.out.println("1. Add Subscription");
-            System.out.println("2. View Subscriptions");
-            System.out.println("3. Total Monthly Cost");
-            System.out.println("4. Find Unused Subscriptions");
-            System.out.println("5. Update Subscription");
-            System.out.println("6. Delete Subscription");
-            System.out.println("7. Search Subscription");
-            System.out.println("0. Exit");
-            System.out.print("Enter your choice: ");
-
-            try {
-                // Read the choice and convert it to an integer
-                choice = Integer.parseInt(sc.nextLine().trim());
-
-                // Perform the operation selected by the user
-                switch (choice) {
-
-                    case 1:
-                        addSubscription(sc, service);
-                        break;
-
-                    case 2:
-                        viewSubscriptions(service);
-                        break;
-
-                    case 3:
-                        // Display the total monthly expense
-                        System.out.printf(
-                                "Total monthly cost: %.2f%n",
-                                service.getTotalMonthlyCost()
-                        );
-                        break;
-
-                    case 4:
-                        findUnusedSubscriptions(sc, service);
-                        break;
-
-                    case 5:
-                        updateSubscription(sc, service);
-                        break;
-
-                    case 6:
-                        deleteSubscription(sc, service);
-                        break;
-
-                    case 7:
-                        searchSubscriptions(sc, service);
-                        break;
-
-                    case 0:
-                        // Display a message before exiting
-                        System.out.println(
-                                "Thank you for using the application."
-                        );
-                        break;
-
-                    default:
-                        // Handle menu choices outside the available options
-                        System.out.println("Invalid choice. Try again.");
-                }
-
-            } catch (NumberFormatException e) {
-                // Handle input that cannot be converted to an integer
-                System.out.println("Please enter a valid number.");
-            }
-        }
-
-        // Close the Scanner after the application ends
-        sc.close();
-    }
-
-    // Add a new subscription
-    private static void addSubscription(
-            Scanner sc, SubscriptionService service) {
+        System.out.println("===== Subscription Waste Detector =====");
 
         try {
-            // Read the subscription name
-            System.out.print("Enter subscription name: ");
-            String name = sc.nextLine().trim();
+            // Check whether Java can connect to MySQL.
+            DBConnection.getConnection().close();
+            System.out.println("Database connected successfully.");
 
-            // Reject an empty name
-            if (name.isEmpty()) {
-                System.out.println("Name cannot be empty.");
-                return;
-            }
+            int choice;
 
-            // Read the subscription cost
-            System.out.print("Enter subscription cost: ");
-            double cost = Double.parseDouble(sc.nextLine().trim());
+            // Repeat the menu until the user selects Exit.
+            do {
+                showMenu();
+                choice = readInteger("Enter your choice: ");
 
-            // Reject negative, infinite, or invalid numeric costs
-            if (!Double.isFinite(cost) || cost < 0) {
-                System.out.println(
-                        "Cost must be a valid non-negative number."
-                );
-                return;
-            }
+                try {
+                    switch (choice) {
+                        case 1:
+                            addSubscription();
+                            break;
 
-            // Read and convert the billing cycle to an enum value
-            System.out.print("Enter billing cycle (MONTHLY/YEARLY): ");
-            BillingCycle cycle = BillingCycle.valueOf(
-                    sc.nextLine().trim().toUpperCase()
-            );
+                        case 2:
+                            showSubscriptions(service.getAllSubscriptions());
+                            break;
 
-            // Read the last-used date in YYYY-MM-DD format
-            System.out.print("Enter last used date (YYYY-MM-DD): ");
-            LocalDate date = LocalDate.parse(sc.nextLine().trim());
+                        case 3:
+                            System.out.printf(
+                                    "Total monthly cost: Rs. %.2f%n",
+                                    service.getTotalMonthlyCost());
+                            break;
 
-            // Do not allow a future last-used date
-            if (date.isAfter(LocalDate.now())) {
-                System.out.println("Date cannot be in the future.");
-                return;
-            }
+                        case 4:
+                            findUnusedSubscriptions();
+                            break;
 
-            // Create the subscription object; the service assigns its ID
-            Subscription s = new Subscription(
-                    0, name, cost, cycle, date
-            );
+                        case 5:
+                            updateSubscription();
+                            break;
 
-            // Add the subscription and save it
-            service.addSubscription(s);
-            System.out.println("Subscription added successfully.");
+                        case 6:
+                            deleteSubscription();
+                            break;
 
-        } catch (NumberFormatException e) {
-            // Handle a cost that is not a valid number
-            System.out.println("Invalid cost.");
+                        case 7:
+                            searchSubscription();
+                            break;
 
-        } catch (DateTimeParseException e) {
-            // Handle a date that does not follow the required format
-            System.out.println("Invalid date. Use YYYY-MM-DD.");
+                        case 8:
+                            showPotentialSavings();
+                            break;
 
-        } catch (IllegalArgumentException e) {
-            // Handle a billing cycle that is not MONTHLY or YEARLY
-            System.out.println(
-                    "Invalid billing cycle. Use MONTHLY or YEARLY."
-            );
+                        case 9:
+                            System.out.printf(
+                                    "Estimated yearly spending: Rs. %.2f%n",
+                                    service.getYearlySpending());
+                            break;
+
+                        case 0:
+                            System.out.println("Thank you for using the program.");
+                            break;
+
+                        default:
+                            System.out.println(
+                                    "Invalid choice. Enter a number from 0 to 9.");
+                    }
+                } catch (SQLException e) {
+                    System.out.println(
+                            "Database operation failed: " + e.getMessage());
+                }
+
+            } while (choice != 0);
+
+        } catch (SQLException e) {
+            System.out.println("Could not connect to the database.");
+            System.out.println(e.getMessage());
         }
     }
 
-    // Display all saved subscriptions
-    private static void viewSubscriptions(SubscriptionService service) {
+    // Displays all menu options.
+    private static void showMenu() {
+        System.out.println();
+        System.out.println("1. Add Subscription");
+        System.out.println("2. View Subscriptions");
+        System.out.println("3. Calculate Total Monthly Cost");
+        System.out.println("4. Find Unused Subscriptions");
+        System.out.println("5. Update Subscription");
+        System.out.println("6. Delete Subscription");
+        System.out.println("7. Search Subscription");
+        System.out.println("8. Calculate Potential Monthly Savings");
+        System.out.println("9. Calculate Estimated Yearly Spending");
+        System.out.println("0. Exit");
+    }
 
-        // Get the current subscription list
-        ArrayList<Subscription> list = service.getAllSubscriptions();
+    // Accepts details and adds a subscription.
+    private static void addSubscription() throws SQLException {
+        String name = readName("Enter subscription name: ");
+        double cost = readCost("Enter subscription cost: ");
+        BillingCycle cycle = readBillingCycle();
+        LocalDate lastUsed =
+                readDate("Enter last used date (YYYY-MM-DD): ");
 
-        // Check whether the list is empty
-        if (list.isEmpty()) {
+        Subscription subscription =
+                new Subscription(0, name, cost, cycle, lastUsed);
+
+        service.addSubscription(subscription);
+        System.out.println("Subscription added successfully.");
+    }
+
+    // Displays subscriptions unused for a chosen number of days.
+    private static void findUnusedSubscriptions() throws SQLException {
+        int days = readPositiveInteger(
+                "Find subscriptions unused for how many days? ");
+
+        ArrayList<Subscription> unused =
+                service.getUnusedSubscriptions(days);
+
+        if (unused.isEmpty()) {
+            System.out.println("No unused subscriptions found.");
+        } else {
+            showSubscriptions(unused);
+        }
+    }
+
+    // Accepts new details and updates an existing subscription.
+    private static void updateSubscription() throws SQLException {
+        int id = readPositiveInteger("Enter subscription ID to update: ");
+
+        ArrayList<Subscription> all = service.getAllSubscriptions();
+        Subscription existing = findById(all, id);
+
+        if (existing == null) {
+            System.out.println("Subscription not found.");
+            return;
+        }
+
+        System.out.println("Current details: " + existing);
+
+        String name = readName("Enter new name: ");
+        double cost = readCost("Enter new cost: ");
+        BillingCycle cycle = readBillingCycle();
+        LocalDate lastUsed =
+                readDate("Enter last used date (YYYY-MM-DD): ");
+
+        existing.setName(name);
+        existing.setCost(cost);
+        existing.setBillingCycle(cycle);
+        existing.setLastUsedDate(lastUsed);
+
+        if (service.updateSubscription(existing)) {
+            System.out.println("Subscription updated successfully.");
+        } else {
+            System.out.println("Subscription was not updated.");
+        }
+    }
+
+    // Deletes a subscription by ID.
+    private static void deleteSubscription() throws SQLException {
+        int id = readPositiveInteger("Enter subscription ID to delete: ");
+
+        if (service.deleteSubscription(id)) {
+            System.out.println("Subscription deleted successfully.");
+        } else {
+            System.out.println("Subscription not found.");
+        }
+    }
+
+    // Searches subscriptions by name.
+    private static void searchSubscription() throws SQLException {
+        System.out.print("Enter subscription name to search: ");
+        String text = scanner.nextLine().trim();
+
+        if (text.isEmpty()) {
+            System.out.println("Search text cannot be empty.");
+            return;
+        }
+
+        ArrayList<Subscription> matches =
+                service.searchSubscriptions(text);
+
+        showSubscriptions(matches);
+    }
+
+    // Displays estimated savings from unused subscriptions.
+    private static void showPotentialSavings() throws SQLException {
+        int days = readPositiveInteger(
+                "Consider unused after how many days? ");
+
+        double savings =
+                service.getPotentialMonthlySavings(days);
+
+        System.out.printf(
+                "Potential monthly savings: Rs. %.2f%n", savings);
+
+        System.out.println(
+                "This is an estimate, not an automatic cancellation.");
+    }
+
+    // Prints subscription details and monthly equivalent costs.
+    private static void showSubscriptions(
+            ArrayList<Subscription> subscriptions) {
+
+        if (subscriptions.isEmpty()) {
             System.out.println("No subscriptions found.");
             return;
         }
 
-        // Print each subscription
-        for (Subscription s : list) {
-            System.out.println(s);
+        for (Subscription subscription : subscriptions) {
+            System.out.println(subscription);
+
+            System.out.printf(
+                    "Monthly equivalent: Rs. %.2f%n",
+                    subscription.getMonthlyCost());
         }
     }
 
-    // Find subscriptions that have been unused for a chosen number of days
-    private static void findUnusedSubscriptions(
-            Scanner sc, SubscriptionService service) {
+    // Finds a subscription in a list using its ID.
+    private static Subscription findById(
+            ArrayList<Subscription> subscriptions, int id) {
 
-        try {
-            // Ask the user for the unused-day threshold
-            System.out.print("Enter number of unused days: ");
-            int days = Integer.parseInt(sc.nextLine().trim());
+        for (Subscription subscription : subscriptions) {
+            if (subscription.getId() == id) {
+                return subscription;
+            }
+        }
 
-            // Reject a negative threshold
-            if (days < 0) {
-                System.out.println("Days cannot be negative.");
-                return;
+        return null;
+    }
+
+    // Accepts a non-empty name.
+    private static String readName(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String name = scanner.nextLine().trim();
+
+            if (!name.isEmpty()) {
+                return name;
             }
 
-            // Get subscriptions that meet the threshold
-            ArrayList<Subscription> unused =
-                    service.getUnusedSubscriptions(days);
-
-            // Check whether any unused subscriptions were found
-            if (unused.isEmpty()) {
-                System.out.println("No unused subscriptions found.");
-                return;
-            }
-
-            System.out.println("Unused subscriptions:");
-
-            // Display each unused subscription
-            for (Subscription s : unused) {
-                System.out.println(s);
-            }
-
-        } catch (NumberFormatException e) {
-            // Handle input that is not a whole number
-            System.out.println("Please enter a valid whole number.");
+            System.out.println("Name cannot be empty.");
         }
     }
 
-    // Search for subscriptions by name
-    private static void searchSubscriptions(
-            Scanner sc, SubscriptionService service) {
+    // Accepts a valid, non-negative cost.
+    private static double readCost(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String text = scanner.nextLine().trim();
 
-        // Read the name or part of the name to search for
-        System.out.print("Enter subscription name to search: ");
-        String keyword = sc.nextLine().trim();
+            try {
+                double cost = Double.parseDouble(text);
 
-        // Reject an empty search
-        if (keyword.isEmpty()) {
-            System.out.println("Search name cannot be empty.");
-            return;
-        }
-
-        // Get matching subscriptions
-        ArrayList<Subscription> results =
-                service.searchSubscriptions(keyword);
-
-        // Display a message if no match exists
-        if (results.isEmpty()) {
-            System.out.println("No matching subscriptions found.");
-            return;
-        }
-
-        System.out.println("Matching subscriptions:");
-
-        // Print all matching subscriptions
-        for (Subscription s : results) {
-            System.out.println(s);
-        }
-    }
-
-    // Update the details of an existing subscription
-    private static void updateSubscription(
-            Scanner sc, SubscriptionService service) {
-
-        try {
-            // Read the ID of the subscription to update
-            System.out.print("Enter subscription ID to update: ");
-            int id = Integer.parseInt(sc.nextLine().trim());
-
-            // Initially, no matching subscription has been found
-            Subscription existing = null;
-
-            // Get all subscriptions
-            ArrayList<Subscription> list = service.getAllSubscriptions();
-
-            // Search for the subscription with the entered ID
-            for (Subscription s : list) {
-                if (s.getId() == id) {
-                    existing = s;
-                    break;
+                if (Double.isFinite(cost) && cost >= 0) {
+                    return cost;
                 }
+
+                System.out.println("Enter a valid non-negative cost.");
+
+            } catch (NumberFormatException e) {
+                System.out.println("Enter a number, such as 199.00.");
             }
-
-            // Stop if the ID does not exist
-            if (existing == null) {
-                System.out.println("Subscription not found.");
-                return;
-            }
-
-            // Read the replacement name
-            System.out.print("Enter new subscription name: ");
-            String name = sc.nextLine().trim();
-
-            if (name.isEmpty()) {
-                System.out.println("Name cannot be empty.");
-                return;
-            }
-
-            // Read the new cost
-            System.out.print("Enter new cost: ");
-            double cost = Double.parseDouble(sc.nextLine().trim());
-
-            if (!Double.isFinite(cost) || cost < 0) {
-                System.out.println(
-                        "Cost must be a valid non-negative number."
-                );
-                return;
-            }
-
-            // Read the new billing cycle
-            System.out.print("Enter new billing cycle (MONTHLY/YEARLY): ");
-            BillingCycle cycle = BillingCycle.valueOf(
-                    sc.nextLine().trim().toUpperCase()
-            );
-
-            // Read the new last-used date
-            System.out.print("Enter new last used date (YYYY-MM-DD): ");
-            LocalDate date = LocalDate.parse(sc.nextLine().trim());
-
-            // Reject future dates
-            if (date.isAfter(LocalDate.now())) {
-                System.out.println("Date cannot be in the future.");
-                return;
-            }
-
-            // Create an updated object using the same ID
-            Subscription updated = new Subscription(
-                    id, name, cost, cycle, date
-            );
-
-            // Update the subscription and display the result
-            if (service.updateSubscription(updated)) {
-                System.out.println("Subscription updated successfully.");
-            } else {
-                System.out.println("Subscription not found.");
-            }
-
-        } catch (NumberFormatException e) {
-            // Handle an invalid ID or cost
-            System.out.println("Invalid ID or cost.");
-
-        } catch (DateTimeParseException e) {
-            // Handle an incorrectly formatted date
-            System.out.println("Invalid date. Use YYYY-MM-DD.");
-
-        } catch (IllegalArgumentException e) {
-            // Handle an invalid billing cycle
-            System.out.println(
-                    "Invalid billing cycle. Use MONTHLY or YEARLY."
-            );
         }
     }
 
-    // Delete a subscription using its ID
-    private static void deleteSubscription(
-            Scanner sc, SubscriptionService service) {
+    // Accepts an integer from the user.
+    private static int readInteger(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String text = scanner.nextLine().trim();
 
-        try {
-            // Read the ID of the subscription to delete
-            System.out.print("Enter subscription ID to delete: ");
-            int id = Integer.parseInt(sc.nextLine().trim());
+            try {
+                return Integer.parseInt(text);
+            } catch (NumberFormatException e) {
+                System.out.println("Enter a whole number.");
+            }
+        }
+    }
 
-            // Delete the subscription and display the result
-            if (service.deleteSubscription(id)) {
-                System.out.println("Subscription deleted successfully.");
-            } else {
-                System.out.println("Subscription not found.");
+    // Accepts only positive integers.
+    private static int readPositiveInteger(String prompt) {
+        while (true) {
+            int number = readInteger(prompt);
+
+            if (number > 0) {
+                return number;
             }
 
-        } catch (NumberFormatException e) {
-            // Handle an ID that is not a valid integer
-            System.out.println("Please enter a valid ID.");
+            System.out.println("Enter a number greater than zero.");
+        }
+    }
+
+    // Accepts MONTHLY or YEARLY as the billing cycle.
+    private static BillingCycle readBillingCycle() {
+        while (true) {
+            System.out.print("Enter billing cycle (MONTHLY/YEARLY): ");
+            String text = scanner.nextLine().trim().toUpperCase();
+
+            if (text.equals("MONTHLY")) {
+                return BillingCycle.MONTHLY;
+            }
+
+            if (text.equals("YEARLY")) {
+                return BillingCycle.YEARLY;
+            }
+
+            System.out.println("Enter MONTHLY or YEARLY.");
+        }
+    }
+
+    // Accepts a valid date that is not in the future.
+    private static LocalDate readDate(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String text = scanner.nextLine().trim();
+
+            try {
+                LocalDate date = LocalDate.parse(text);
+
+                if (!date.isAfter(LocalDate.now())) {
+                    return date;
+                }
+
+                System.out.println("Date cannot be in the future.");
+
+            } catch (DateTimeParseException e) {
+                System.out.println(
+                        "Use YYYY-MM-DD format, such as 2026-10-10.");
+            }
         }
     }
 }
