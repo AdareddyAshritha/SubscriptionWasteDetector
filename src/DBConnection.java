@@ -8,7 +8,7 @@ public class DBConnection {
 
         String url = "jdbc:mysql://localhost:3306/subscription_waste";
         String username = "root";
-        String password = "MYSQL_PASSWORD";
+        String password = "Ashritha@30";
 
         Connection con = DriverManager.getConnection(url, username, password);
 

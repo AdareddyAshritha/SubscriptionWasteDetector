@@ -89,12 +89,12 @@ public class SubscriptionService {
         ArrayList<Subscription> matches = new ArrayList<>();
 
         String sql = "SELECT id, name, cost, billing_cycle, last_used_date "
-                + "FROM subscriptions WHERE name LIKE ? ORDER BY id";
+                + "FROM subscriptions WHERE LOWER(name) LIKE LOWER(?) ORDER BY id";
 
         try (Connection connection = DBConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
-            statement.setString(1, "%" + searchText + "%");
+            statement.setString(1, "%" + searchText.trim() + "%");
 
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
